@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SunMoonTimesSandBox", "SunMoonTimesSandBox\SunMoonTimesSandBox.csproj", "{463523E3-CD61-4B03-849E-5F48D1C83E2C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{463523E3-CD61-4B03-849E-5F48D1C83E2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{463523E3-CD61-4B03-849E-5F48D1C83E2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{463523E3-CD61-4B03-849E-5F48D1C83E2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{463523E3-CD61-4B03-849E-5F48D1C83E2C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A8D08959-64C1-4E9B-A526-BB75B69B5A20}
+	EndGlobalSection
+EndGlobal
