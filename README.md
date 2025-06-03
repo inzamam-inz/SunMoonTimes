@@ -4,12 +4,6 @@
 
 The library supports both current and user-specified date/time inputs, in either UTC or local time.
 
-## 🚀 Features
-
-- Calculate the Sun’s and Moon’s position (latitude, longitude) at any `DateTime`
-- Supports both UTC and local time
-- Lightweight and easy to use
-
 ## 📦 Installation
 
 Install via NuGet:
