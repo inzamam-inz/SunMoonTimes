@@ -12,6 +12,7 @@
     <RepositoryUrl>https://github.com/inzamam-inz/SunMoonTimes</RepositoryUrl>
 	<PackageTags>Sun, Moon, Solar Position, Lunar Position, Calculation</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
 </Project>

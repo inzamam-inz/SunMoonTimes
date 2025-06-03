@@ -3,75 +3,82 @@ using System;
 
 namespace SunMoonTimes
 {
-    public class SolarPosition
+    /// <summary>
+    /// Provides methods to calculate the Sun's subsolar point (geographical position) on Earth.
+    /// </summary>
+    public static class SolarPosition
     {
+        private const double JulianEpochJ2000 = 2451545.0;
+        private const double DegreesPerCircle = 360.0;
+        private const double RadiansToDegrees = 180.0 / Math.PI;
+        private const double DegreesToRadians = Math.PI / 180.0;
+
+        /// <summary>
+        /// Calculates the Sun's current subsolar point using the current UTC time.
+        /// </summary>
+        /// <returns>The geographical position where the Sun is directly overhead.</returns>
         public static GeoPosition GetPosition()
         {
             return GetPosition(DateTime.UtcNow);
         }
 
-        // Calculate the sun's position (latitude and longitude) on Earth
+        /// <summary>
+        /// Calculates the Sun's subsolar point for the specified UTC time.
+        /// </summary>
+        /// <param name="utcTime">The UTC time for which to calculate the Sun's position.</param>
+        /// <returns>The geographical position where the Sun is directly overhead.</returns>
+        /// <remarks>
+        /// Uses a simplified solar position algorithm suitable for most applications.
+        /// For high-precision applications, consider using more sophisticated algorithms like VSOP87.
+        /// </remarks>
         public static GeoPosition GetPosition(DateTime utcTime)
         {
-            // Convert DateTime to Julian date
-            var julianDate = HelperClass.DateTimeToJulianDate(utcTime);
+            if (utcTime.Kind == DateTimeKind.Local)
+            {
+                utcTime = utcTime.ToUniversalTime();
+            }
+            else if (utcTime.Kind == DateTimeKind.Unspecified)
+            {
+                utcTime = DateTime.SpecifyKind(utcTime, DateTimeKind.Utc);
+            }
 
-            // Calculate the number of days since J2000.0
-            var n = julianDate - 2451545.0;
+            double julianDate = Helper.DateTimeToJulianDate(utcTime);
+            double n = julianDate - JulianEpochJ2000;
 
-            // Calculate mean solar longitude (degrees)
-            var L = (280.460 + 0.9856474 * n) % 360;
+            // Calculate mean solar longitude and mean anomaly
+            double meanSolarLongitude = Helper.NormalizeAngle(280.460 + 0.9856474 * n);
+            double meanAnomaly = Helper.NormalizeAngle(357.528 + 0.9856003 * n);
+            double meanAnomalyRad = meanAnomaly * DegreesToRadians;
 
-            // Calculate mean anomaly (degrees)
-            var g = (357.528 + 0.9856003 * n) % 360;
+            // Calculate true ecliptic longitude using equation of center
+            double eclipticLongitude = meanSolarLongitude +
+                                     1.915 * Math.Sin(meanAnomalyRad) +
+                                     0.020 * Math.Sin(2 * meanAnomalyRad);
 
-            // Convert to radians
-            var gRad = g * Math.PI / 180.0;
+            // Earth's axial tilt (obliquity of the ecliptic)
+            double eclipticObliquity = 23.439 - 0.0000004 * n;
 
-            // Calculate ecliptic longitude (degrees)
-            var eclipticLongitude = L + 1.915 * Math.Sin(gRad) + 0.020 * Math.Sin(2 * gRad);
+            double eclipticLongitudeRad = eclipticLongitude * DegreesToRadians;
+            double eclipticObliquityRad = eclipticObliquity * DegreesToRadians;
 
-            // Calculate ecliptic obliquity (degrees)
-            var eclipticObliquity = 23.439 - 0.0000004 * n;
-
-            // Convert to radians
-            var eclipticLongitudeRad = eclipticLongitude * Math.PI / 180.0;
-            var eclipticObliquityRad = eclipticObliquity * Math.PI / 180.0;
-
-            // Calculate right ascension (radians)
-            var rightAscension = Math.Atan2(
+            // Convert to equatorial coordinates
+            double rightAscension = Math.Atan2(
                 Math.Cos(eclipticObliquityRad) * Math.Sin(eclipticLongitudeRad),
                 Math.Cos(eclipticLongitudeRad)
             );
 
-            // Calculate declination (radians)
-            var declination = Math.Asin(
+            double declination = Math.Asin(
                 Math.Sin(eclipticObliquityRad) * Math.Sin(eclipticLongitudeRad)
             );
 
-            // Calculate Greenwich Mean Sidereal Time (GMST) in degrees
-            var gmst = HelperClass.CalculateGMST(utcTime);
+            double gmst = Helper.CalculateGMST(utcTime);
+            double rightAscensionDeg = Helper.NormalizeAngle(rightAscension * RadiansToDegrees);
 
-            // Convert right ascension to degrees
-            var rightAscensionDeg = rightAscension * 180.0 / Math.PI;
-            if (rightAscensionDeg < 0)
-            {
-                rightAscensionDeg += 360.0;
-            }
+            // Calculate subsolar longitude
+            double longitude = rightAscensionDeg - gmst;
+            longitude = Helper.NormalizeLongitude(longitude);
 
-            // Calculate the Sun's longitude (degrees)
-            var longitude = (rightAscensionDeg - gmst) % 360;
-            if (longitude < -180.0)
-            {
-                longitude += 360.0;
-            }
-            else if (longitude > 180.0)
-            {
-                longitude -= 360.0;
-            }
-
-            // Convert declination to degrees for latitude
-            var latitude = declination * 180.0 / Math.PI;
+            double latitude = declination * RadiansToDegrees;
 
             return new GeoPosition(latitude, longitude);
         }
