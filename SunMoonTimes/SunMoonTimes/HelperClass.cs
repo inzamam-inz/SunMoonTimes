@@ -106,5 +106,29 @@ namespace SunMoonTimes
 
             return longitude;
         }
+
+        /// <summary>
+        /// Converts a DateTime to UTC if it is not already in UTC.
+        /// </summary>
+        /// <param name="dateTime">The DateTime to convert.</param>
+        /// <returns>The DateTime in UTC.</returns>
+        public static DateTime ToUTCIfNeeded(DateTime dateTime)
+        {
+            if (dateTime.Kind == DateTimeKind.Local)
+            {
+                return dateTime.ToUniversalTime();
+            }
+            else if (dateTime.Kind == DateTimeKind.Unspecified)
+            {
+                return DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+            }
+            return dateTime;
+        }
+
+        public static double CalculateGMST(DateTime utcTime, double longitude)
+        {
+            double gmst = CalculateGMST(utcTime);
+            return NormalizeAngle(gmst + longitude / 15.0);
+        }
     }
 }

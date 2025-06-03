@@ -7,12 +7,12 @@
     <Title>Sun Moon Times</Title>
     <Authors>inzamam</Authors>
     <Company>InTaha</Company>
-    <Description>SunMoonTimes is a .NET library that provides accurate calculations for solar and lunar positions, sunrise and sunset times, moon phases, and more.</Description>
+    <Description>SunMoonTimes is a .NET library that delivers precise calculations of solar and lunar positions on Earth. It allows you to determine sunrise, sunset, moonrise, and moonset times for any observer location and date—past, present, or future. Additionally, it computes the azimuth and elevation angles of the sun and moon as seen from the observer’s position. This library is ideal for applications requiring accurate celestial event timings and positional data.</Description>
     <PackageProjectUrl>https://github.com/inzamam-inz/SunMoonTimes</PackageProjectUrl>
     <RepositoryUrl>https://github.com/inzamam-inz/SunMoonTimes</RepositoryUrl>
-	<PackageTags>Sun, Moon, Solar Position, Lunar Position, Calculation</PackageTags>
+	<PackageTags>Sunrise, Sunset, Moonrise, Moonset, Solar Position, Lunar Position, Azimuth, Elevation</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
 </Project>

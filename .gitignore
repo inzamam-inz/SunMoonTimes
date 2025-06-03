@@ -58,3 +58,10 @@ nunit-*.xml
 
 # Visual Studio Code
 **/.vscode/
+
+
+# SANDBOX
+/SunMoonTimesSandBox/SunMoonTimesSandBox/HelperClass.cs
+/SunMoonTimesSandBox/SunMoonTimesSandBox/LunarPosition.cs
+/SunMoonTimesSandBox/SunMoonTimesSandBox/SolarPosition.cs
+/SunMoonTimesSandBox/SunMoonTimesSandBox/Models

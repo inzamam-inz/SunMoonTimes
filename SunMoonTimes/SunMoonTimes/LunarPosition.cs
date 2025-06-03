@@ -1,5 +1,6 @@
 ﻿using System;
 using SunMoonTimes.Models;
+using SunMoonTimes;
 
 namespace SunMoonTimes
 {
@@ -32,16 +33,9 @@ namespace SunMoonTimes
         /// Uses a truncated ELP-2000 lunar theory with major perturbation terms.
         /// Accuracy is typically within a few arcminutes for modern dates.
         /// </remarks>
-        public static GeoPosition GetPosition(DateTime utcTime)
+        public static GeoPosition GetPosition(DateTime time)
         {
-            if (utcTime.Kind == DateTimeKind.Local)
-            {
-                utcTime = utcTime.ToUniversalTime();
-            }
-            else if (utcTime.Kind == DateTimeKind.Unspecified)
-            {
-                utcTime = DateTime.SpecifyKind(utcTime, DateTimeKind.Utc);
-            }
+            var utcTime = Helper.ToUTCIfNeeded(time);
 
             double julianDate = Helper.DateTimeToJulianDate(utcTime);
             double T = (julianDate - JulianEpochJ2000) / DaysPerCentury;
@@ -160,6 +154,134 @@ namespace SunMoonTimes
             double latitude = equatorial.Declination * RadiansToDegrees;
 
             return new GeoPosition(latitude, longitude);
+        }
+
+        /// <summary>
+        /// Calculates the Azimuth and Elevation of the Moon as seen from a given observer position at a specified UTC time.
+        /// </summary>
+        /// <param name="observerLat">Observer's latitude in degrees.</param>
+        /// <param name="observerLon">Observer's longitude in degrees.</param>
+        /// <param name="time">UTC DateTime.</param>
+        /// <returns>Tuple containing Azimuth and Elevation in degrees.</returns>
+        public static (double Azimuth, double Elevation) GetAzimuthElevation(GeoPosition observer, DateTime time)
+        {
+            var utcTime = Helper.ToUTCIfNeeded(time);
+
+            double julianDate = Helper.DateTimeToJulianDate(utcTime);
+            double T = (julianDate - JulianEpochJ2000) / DaysPerCentury;
+
+            var fundamentalArguments = CalculateFundamentalArguments(T);
+            var eclipticCoordinates = CalculateEclipticCoordinates(fundamentalArguments);
+            var equatorial = ConvertToEquatorialCoordinates(eclipticCoordinates, T);
+
+            // Convert observer latitude/longitude to radians
+            double latRad = observer.Latitude * DegreesToRadians;
+            //double lonRad = observer.Longitude * DegreesToRadians;
+
+            // Calculate Local Sidereal Time (LST)
+            double gmst = Helper.CalculateGMST(utcTime); // in degrees
+            double lst = Helper.NormalizeAngle(gmst + observer.Longitude); // in degrees
+
+            // Hour Angle (HA) in radians
+            double ha = (lst - equatorial.RightAscension * RadiansToDegrees) * DegreesToRadians;
+
+            // Equatorial coordinates
+            double dec = equatorial.Declination; // in radians
+
+            // Convert to horizontal coordinates
+            double sinAlt = Math.Sin(dec) * Math.Sin(latRad) + Math.Cos(dec) * Math.Cos(latRad) * Math.Cos(ha);
+            double alt = Math.Asin(sinAlt); // Elevation
+
+            double cosAz = (Math.Sin(dec) - Math.Sin(alt) * Math.Sin(latRad)) / (Math.Cos(alt) * Math.Cos(latRad));
+            double clampedCosAz = cosAz;
+
+            if (clampedCosAz < -1) clampedCosAz = -1;
+            else if (clampedCosAz > 1) clampedCosAz = 1;
+
+            double az = Math.Acos(clampedCosAz);
+
+            // Adjust azimuth based on hour angle
+            if (Math.Sin(ha) > 0)
+                az = 2 * Math.PI - az;
+
+            return (az * RadiansToDegrees, alt * RadiansToDegrees);
+        }
+
+        /// <summary>
+        /// Calculates the Azimuth and Elevation of the Moon as seen from a given observer position at the current UTC time.
+        /// </summary>
+        /// <param name="observer">Observer's geographical position.</param>
+        /// <returns>Tuple containing Azimuth and Elevation in degrees.</returns>
+        public static (double Azimuth, double Elevation) GetAzimuthElevation(GeoPosition observer)
+        {
+            return GetAzimuthElevation(observer, DateTime.UtcNow);
+        }
+
+        /// <summary>
+        /// Calculates the moonrise and moonset times for a given observer on a specified date.
+        /// </summary>
+        /// <param name="observerLat">Observer's latitude in degrees.</param>
+        /// <param name="observerLon">Observer's longitude in degrees.</param>
+        /// <param name="date">The date (in UTC) for which to compute moonrise/set (time portion is ignored).</param>
+        /// <returns>A tuple with moonrise and moonset times in UTC. Null if moon doesn't rise or set on that date.</returns>
+        public static (DateTime? Moonrise, DateTime? Moonset) GetNextRiseSet(GeoPosition observer, DateTime date, int step = 1)
+        {
+            date = Helper.ToUTCIfNeeded(date);
+            step = Math.Max(1, step);
+
+            var startUtc = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = startUtc.AddDays(1);
+
+            DateTime? moonrise = null;
+            DateTime? moonset = null;
+
+            double? prevElevation = null;
+            DateTime? pTime = null;
+
+            for (var time = startUtc; time <= endUtc; time = time.AddMinutes(step))
+            {
+                var (_, elevation) = GetAzimuthElevation(observer, time);
+
+                if (prevElevation.HasValue)
+                {
+                    if (prevElevation < 0 && elevation >= 0 && moonrise == null && pTime != null)
+                    {
+                        moonrise = InterpolateRiseSet(observer, pTime.Value, time, true);
+                    }
+                    else if (prevElevation > 0 && elevation <= 0 && moonset == null && pTime != null)
+                    {
+                        moonset = InterpolateRiseSet(observer, pTime.Value, time, false);
+                    }
+
+                    if (moonrise != null && moonset != null)
+                        break;
+                }
+
+                prevElevation = elevation;
+                pTime = time;
+            }
+
+            return (moonrise, moonset);
+        }
+
+        private static DateTime InterpolateRiseSet(GeoPosition observer, DateTime t1, DateTime t2, bool rising)
+        {
+            var (_, el1) = GetAzimuthElevation(observer, t1);
+            var (_, el2) = GetAzimuthElevation(observer, t2);
+
+            double frac = el1 / (el1 - el2); // linear interpolation
+            double totalSeconds = (t2 - t1).TotalSeconds;
+            return t1.AddSeconds(frac * totalSeconds);
+        }
+
+        /// <summary>
+        /// Calculates the moonrise and moonset times for a given observer on the current date.
+        /// </summary>
+        /// <param name="observer">The observer's geographical position.</param>
+        /// <returns>A tuple with moonrise and moonset times in UTC. Null if moon doesn't rise or set today.</returns>
+        public static (DateTime? Moonrise, DateTime? Moonset) GetNextRiseSet(GeoPosition observer, int step = 1)
+        {
+            return GetNextRiseSet(observer, DateTime.UtcNow, step);
         }
     }
 }
